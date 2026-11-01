@@ -6,8 +6,8 @@
   <title>班級數位聯絡簿</title>
   <style>
     :root {
-      --bg-main: #FBF9F5;
-      --panel-bg: #FFFFFF;
+      --bg-main: rgba(251, 249, 245, 0.9);
+      --panel-bg: rgba(255, 255, 255, 0.95);
       --accent-orange: #E0562D;
       --accent-blue: #2B6CB0;
       --accent-green: #2F855A;
@@ -25,13 +25,16 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Microsoft JhengHei", "微軟正黑體", -apple-system, BlinkMacSystemFont, sans-serif; }
     
     html, body {
-      background: transparent;
-      color: var(--text-dark);
       width: 100%;
       height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
+      /* 背景圖片預設設定 */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 0.3s ease;
     }
 
     /* 滿版容器：左右分欄 */
@@ -39,14 +42,14 @@
       position: relative;
       width: 100%;
       height: 100vh;
-      background: transparent;
       display: flex;
       flex-direction: row;
       padding: 10px;
       gap: 10px;
+      background: rgba(255, 255, 255, 0.1); /* 微量遮罩，確保內容清晰 */
     }
 
-    /* 左側區域：設定為 33% 寬度 */
+    /* 左側區域 (33%) */
     .left-section {
       flex: 33;
       display: flex;
@@ -57,14 +60,14 @@
       min-width: 0;
     }
 
-    /* 右側區域：設定為 67% 寬度 */
+    /* 右側區域 (67%) */
     .right-section {
       flex: 67;
       height: 100%;
       background: var(--panel-bg);
       border-radius: 12px;
       border: 1px solid var(--border-color);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -80,11 +83,11 @@
 
     /* 上方每日交代事項文字框 */
     .daily-memo-box {
-      background: #FEFCBF;
+      background: rgba(254, 252, 191, 0.95);
       border: 1px solid #F6E05E;
       border-radius: 12px;
       padding: 12px 16px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       font-size: 24px;
       font-weight: bold;
       color: var(--text-dark);
@@ -105,10 +108,11 @@
       padding: 10px;
       border-radius: 12px;
       border: 1px solid var(--border-color);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
       gap: 8px;
+      backdrop-filter: blur(5px);
     }
 
     .header { background: var(--panel-bg); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); }
@@ -139,22 +143,18 @@
       gap: 6px;
     }
     .controls-left { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-    .controls-right { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .controls-right { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
     
-    .item-select {
+    .item-select, .bg-input {
       background: #EDF2F7;
       color: var(--text-dark);
       border: 1px solid var(--border-color);
       padding: 3px 6px;
       border-radius: 4px;
       font-size: 11px;
-      font-weight: bold;
-      cursor: pointer;
       outline: none;
     }
-    .item-select:focus {
-      border-color: var(--accent-orange);
-    }
+    .bg-input { width: 90px; }
 
     .action-square-btn { 
       padding: 3px 6px; 
@@ -213,7 +213,7 @@
 <body>
 
   <div class="app-viewport">
-    <!-- 左半邊 (33%)：交代事項與登記表格 -->
+    <!-- 左半邊 (33%) -->
     <div class="left-section">
       <div class="daily-memo-box" id="dailyMemo" contenteditable="true" spellcheck="false" onkeyup="saveData()">快樂上學，平安放學，雅雅老師愛你們!</div>
 
@@ -229,7 +229,7 @@
 
         <div class="controls-bar">
           <div class="controls-left">
-            <span>7:40前項目<br>數量：</span>
+            <span>項目數：</span>
             <select id="taskCountSelect" class="item-select" onchange="setTaskCount(this.value)">
               <option value="3">3項</option>
               <option value="4" selected>4項</option>
@@ -240,6 +240,9 @@
           </div>
           
           <div class="controls-right">
+            <!-- 方便換背景圖的輸入框 -->
+            <input type="text" id="bgInput" class="bg-input" placeholder="換背景網址" onchange="changeBg(this.value)">
+            
             <button class="action-square-btn clear" id="clearBtn" onclick="handleClearClick()">
               <span class="btn-icon">🗑️</span>
               <span class="btn-text" id="clearText"><span>清除</span><span>全部</span></span>
@@ -263,9 +266,9 @@
       </div>
     </div>
 
-    <!-- 右半邊 (67%)：嵌入你的 Google 文件 -->
+    <!-- 右半邊 (67%)：已加上 rm=minimal 參數優化邊界 -->
     <div class="right-section">
-      <iframe class="doc-iframe" src="https://docs.google.com/document/d/1acYCEdR3oNJnfcBc5fQZwu19pQBxzjHZ54Ot5dGXruI/preview"></iframe>
+      <iframe class="doc-iframe" src="https://docs.google.com/document/d/1acYCEdR3oNJnfcBc5fQZwu19pQBxzjHZ54Ot5dGXruI/preview?rm=minimal"></iframe>
     </div>
   </div>
 
@@ -275,13 +278,15 @@
     const groups = ["第一組", "第二組", "第三組", "第四組", "第五組"];
     let state = Array(5).fill(null).map(() => Array(8).fill(null).map(() => ({ checked: false, time: "" })));
     let clearConfirmTimer = null;
+    let bgUrl = "";
 
     function saveData() {
       const dataToSave = {
         memo: document.getElementById('dailyMemo').innerText,
         taskCount: taskCount,
         titles: defaultTitles,
-        state: state
+        state: state,
+        bgUrl: bgUrl
       };
       try {
         localStorage.setItem('classNoticeBoardData_v2', JSON.stringify(dataToSave));
@@ -302,10 +307,25 @@
           }
           if (parsed.titles) defaultTitles = parsed.titles;
           if (parsed.state) state = parsed.state;
+          if (parsed.bgUrl) {
+            bgUrl = parsed.bgUrl;
+            document.getElementById('bgInput').value = bgUrl;
+            document.body.style.backgroundImage = `url('${bgUrl}')`;
+          }
         }
       } catch(e) {
         console.warn("LocalStorage 讀取受限:", e);
       }
+    }
+
+    function changeBg(url) {
+      bgUrl = url.trim();
+      if (bgUrl) {
+        document.body.style.backgroundImage = `url('${bgUrl}')`;
+      } else {
+        document.body.style.backgroundImage = "none";
+      }
+      saveData();
     }
 
     function updateClock() {
