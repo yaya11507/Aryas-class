@@ -34,19 +34,51 @@
       overflow: hidden;
     }
 
+    /* 滿版容器：左右分欄 */
     .app-viewport {
       position: relative;
       width: 100%;
       height: 100vh;
       background: transparent;
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
+      flex-direction: row;
       padding: 10px;
       gap: 10px;
     }
 
-    /* 上方每日交代事項文字框：粉黃底色、文字置左、24px 正黑體 */
+    /* 左側區域：設定為 33% 寬度 */
+    .left-section {
+      flex: 33;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 10px;
+      height: 100%;
+      min-width: 0;
+    }
+
+    /* 右側區域：設定為 67% 寬度 */
+    .right-section {
+      flex: 67;
+      height: 100%;
+      background: var(--panel-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* Google 文件 iframe */
+    .doc-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 上方每日交代事項文字框 */
     .daily-memo-box {
       background: #FEFCBF;
       border: 1px solid #F6E05E;
@@ -94,7 +126,6 @@
     .tag-pass { color: var(--accent-green); }
     .tag-fail { color: #E53E3E; }
 
-    /* 控制列樣式 */
     .controls-bar { 
       background: var(--panel-bg); 
       padding: 6px 10px; 
@@ -110,7 +141,6 @@
     .controls-left { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
     .controls-right { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
     
-    /* 下拉選單樣式 */
     .item-select {
       background: #EDF2F7;
       color: var(--text-dark);
@@ -126,7 +156,6 @@
       border-color: var(--accent-orange);
     }
 
-    /* 右側方形按鈕樣式 */
     .action-square-btn { 
       padding: 3px 6px; 
       border-radius: 4px; 
@@ -142,7 +171,6 @@
     .btn-icon { font-size: 13px; }
     .btn-text { display: flex; flex-direction: column; text-align: center; }
 
-    /* 清除按鈕色彩 */
     .action-square-btn.clear {
       background: #FFF5F5;
       color: #E53E3E;
@@ -185,51 +213,59 @@
 <body>
 
   <div class="app-viewport">
-    <div class="daily-memo-box" id="dailyMemo" contenteditable="true" spellcheck="false" onkeyup="saveData()">快樂上學，平安放學，雅雅老師愛你們!</div>
+    <!-- 左半邊 (33%)：交代事項與登記表格 -->
+    <div class="left-section">
+      <div class="daily-memo-box" id="dailyMemo" contenteditable="true" spellcheck="false" onkeyup="saveData()">快樂上學，平安放學，雅雅老師愛你們!</div>
 
-    <div class="card-block">
-      <div class="header">
-        <div class="title-row">
-          <div class="main-title"><span class="title-icon"></span> 作業繳交登記</div>
-          <div class="clock-display" id="clock">00:00:00</div>
+      <div class="card-block">
+        <div class="header">
+          <div class="title-row">
+            <div class="main-title"><span class="title-icon"></span> 作業繳交登記</div>
+            <div class="clock-display" id="clock">00:00:00</div>
+          </div>
+        </div>
+
+        <div class="score-board" id="scoreBoard"></div>
+
+        <div class="controls-bar">
+          <div class="controls-left">
+            <span>7:40前項目<br>數量：</span>
+            <select id="taskCountSelect" class="item-select" onchange="setTaskCount(this.value)">
+              <option value="3">3項</option>
+              <option value="4" selected>4項</option>
+              <option value="5">5項</option>
+              <option value="6">6項</option>
+              <option value="7">7項</option>
+            </select>
+          </div>
+          
+          <div class="controls-right">
+            <button class="action-square-btn clear" id="clearBtn" onclick="handleClearClick()">
+              <span class="btn-icon">🗑️</span>
+              <span class="btn-text" id="clearText"><span>清除</span><span>全部</span></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th rowspan="2" class="th-group">組別</th>
+                <th id="th740" class="th-section-740">7:40 前 (+5)</th>
+                <th class="th-section-815">8:15 (+2)</th>
+              </tr>
+              <tr id="subHeaderRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
         </div>
       </div>
+    </div>
 
-      <div class="score-board" id="scoreBoard"></div>
-
-      <div class="controls-bar">
-        <div class="controls-left">
-          <span>7:40前項目<br>數量：</span>
-          <select id="taskCountSelect" class="item-select" onchange="setTaskCount(this.value)">
-            <option value="3">3項</option>
-            <option value="4" selected>4項</option>
-            <option value="5">5項</option>
-            <option value="6">6項</option>
-            <option value="7">7項</option>
-          </select>
-        </div>
-        
-        <div class="controls-right">
-          <button class="action-square-btn clear" id="clearBtn" onclick="handleClearClick()">
-            <span class="btn-icon">🗑️</span>
-            <span class="btn-text" id="clearText"><span>清除</span><span>全部</span></span>
-          </button>
-        </div>
-      </div>
-
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th rowspan="2" class="th-group">組別</th>
-              <th id="th740" class="th-section-740">7:40 前 (+5)</th>
-              <th class="th-section-815">8:15 (+2)</th>
-            </tr>
-            <tr id="subHeaderRow"></tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
+    <!-- 右半邊 (67%)：嵌入你的 Google 文件 -->
+    <div class="right-section">
+      <iframe class="doc-iframe" src="https://docs.google.com/document/d/1acYCEdR3oNJnfcBc5fQZwu19pQBxzjHZ54Ot5dGXruI/preview"></iframe>
     </div>
   </div>
 
@@ -240,7 +276,6 @@
     let state = Array(5).fill(null).map(() => Array(8).fill(null).map(() => ({ checked: false, time: "" })));
     let clearConfirmTimer = null;
 
-    /* 即時將修改自動存入瀏覽器快取 (LocalStorage) */
     function saveData() {
       const dataToSave = {
         memo: document.getElementById('dailyMemo').innerText,
