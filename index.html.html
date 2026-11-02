@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班級數位聯絡簿</title>
+  <style>
+    :root {
+      --bg-main: rgba(251, 249, 245, 0.88);
+      --panel-bg: rgba(255, 255, 255, 0.92);
+      --accent-orange: #E0562D;
+      --accent-blue: #2B6CB0;
+      --accent-green: #2F855A;
+      --text-dark: #2D3748;
+      --text-muted: #718096;
+      --border-color: #E2E8F0;
+      
+      --group-1: #EBF8FF;
+      --group-2: #FEFCBF;
+      --group-3: #F0FFF4;
+      --group-4: #FAF5FF;
+      --group-5: #FFF5F5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Microsoft JhengHei", "微軟正黑體", -apple-system, BlinkMacSystemFont, sans-serif; }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #F7FAFC;
+    }
+
+    /* 滿版容器：左右分欄 */
+    .app-viewport {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    /* 左側區域 (33%) */
+    .left-section {
+      position: relative;
+      flex: 33;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 10px;
+      height: 100%;
+      min-width: 0;
+    }
+
+    /* 左上角底圖：取消淡化 (opacity: 1) 與模糊 */
+    .corner-bg-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      border-radius: 12px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* 右側區域 (67%) */
+    .right-section {
+      flex: 67;
+      height: 100%;
+      background: var(--panel-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Google 文件 iframe */
+    .doc-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 上方每日交代事項文字框：字級改為 36px，並移除毛玻璃 (backdrop-filter) 效果 */
+    .daily-memo-box {
+      position: relative;
+      z-index: 1;
+      background: rgba(254, 252, 191, 0.95);
+      border: 1px solid rgba(246, 224, 94, 0.8);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      font-size: 36px;
+      font-weight: bold;
+      color: var(--text-dark);
+      text-align: left;
+      outline: none;
+      transition: all 0.2s ease;
+      max-height: 25vh;
+      overflow-y: auto;
+    }
+
+    .daily-memo-box:focus {
+      border-color: var(--accent-orange);
+      box-shadow: 0 0 0 2px rgba(224, 86, 45, 0.2);
+    }
+
+    .card-block {
+      position: relative;
+      z-index: 1;
+      background: var(--bg-main);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      backdrop-filter: blur(8px);
+    }
+
+    .header { background: var(--panel-bg); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .title-row { display: flex; justify-content: space-between; align-items: center; }
+    .main-title { font-size: 14px; font-weight: bold; color: var(--text-dark); display: flex; align-items: center; gap: 6px; }
+    .title-icon { display: inline-block; width: 10px; height: 10px; background: var(--accent-orange); border-radius: 2px; }
+    .clock-display { font-family: monospace; font-size: 13px; font-weight: bold; color: var(--accent-orange); background: #FFFAF0; padding: 2px 6px; border-radius: 4px; border: 1px solid #FBD38D; }
+
+    .score-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .score-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 2px; text-align: center; }
+    .score-card .g-name { font-size: 11px; color: var(--text-muted); }
+    .score-card .g-pts { font-size: 16px; font-weight: bold; color: var(--accent-orange); line-height: 1.1; }
+    .score-card .g-details { font-size: 9px; line-height: 1; }
+    .detail-tag { display: block; margin-top: 1px; }
+    .tag-pass { color: var(--accent-green); }
+    .tag-fail { color: #E53E3E; }
+
+    .controls-bar { 
+      background: var(--panel-bg); 
+      padding: 6px 10px; 
+      border-radius: 6px; 
+      border: 1px solid var(--border-color); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      font-size: 11px; 
+      color: var(--text-muted); 
+      gap: 6px;
+    }
+    .controls-left { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .controls-right { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    
+    .item-select {
+      background: #EDF2F7;
+      color: var(--text-dark);
+      border: 1px solid var(--border-color);
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .action-square-btn { 
+      padding: 3px 6px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 11px; 
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      line-height: 1.2;
+      transition: all 0.2s;
+    }
+    .btn-icon { font-size: 13px; }
+    .btn-text { display: flex; flex-direction: column; text-align: center; }
+
+    .action-square-btn.upload {
+      background: #EBF8FF;
+      color: #2B6CB0;
+      border: 1px solid #90CDF4;
+    }
+    .action-square-btn.upload:hover {
+      background: #BEE3F8;
+    }
+
+    .action-square-btn.clear {
+      background: #FFF5F5;
+      color: #E53E3E;
+      border: 1px solid #FEB2B2;
+    }
+    .action-square-btn.clear.confirming { 
+      background: #E53E3E; 
+      color: #FFFFFF; 
+      border-color: #C53030; 
+    }
+
+    .table-container { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed; }
+    th, td { border: 1px solid var(--border-color); padding: 5px 2px; vertical-align: middle; }
+    
+    .th-group { width: 42px; font-size: 11px; background: #EDF2F7; color: var(--text-dark); }
+    .th-section-740 { background: #FEFCBF; color: #744210; font-size: 11px; font-weight: bold; }
+    .th-section-815 { background: #EBF8FF; color: #2C5282; font-size: 11px; font-weight: bold; width: 48px; }
+
+    .sub-th { font-size: 11px; font-weight: bold; background: #F7FAFC; color: var(--text-dark); }
+    .editable-title { cursor: pointer; border-bottom: 1px dashed #A0AEC0; outline: none; display: inline-block; max-width: 95%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .editable-title:focus { border-bottom: 2px solid var(--accent-blue); background: #EDF2F7; }
+
+    tr.g-row-0 { background: var(--group-1); }
+    tr.g-row-1 { background: var(--group-2); }
+    tr.g-row-2 { background: var(--group-3); }
+    tr.g-row-3 { background: var(--group-4); }
+    tr.g-row-4 { background: var(--group-5); }
+
+    .group-label { font-weight: bold; font-size: 11px; color: var(--text-dark); }
+
+    .check-cell { cursor: pointer; user-select: none; }
+    .check-box { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border: 1.5px solid #A0AEC0; border-radius: 3px; background: #FFFFFF; margin-right: 2px; vertical-align: middle; }
+    .check-cell.checked .check-box { background: var(--accent-orange); border-color: var(--accent-orange); }
+    .check-cell.checked .check-box::after { content: '✓'; color: #FFF; font-size: 10px; font-weight: bold; }
+    .cell-text { font-size: 11px; font-weight: 500; display: inline-block; vertical-align: middle; }
+    .cell-time { display: block; font-size: 9px; color: var(--text-muted); line-height: 1; margin-top: 1px; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    <!-- 左半邊 (33%) -->
+    <div class="left-section">
+      <!-- 左上角底圖 (位於 left-section 內部) -->
+      <img id="cornerBgImg" class="corner-bg-img" src="" alt="" style="display: none;">
+
+      <div class="daily-memo-box" id="dailyMemo" contenteditable="true" spellcheck="false" onkeyup="saveData()">快樂上學，平安放學，雅雅老師愛你們!</div>
+
+      <div class="card-block">
+        <div class="header">
+          <div class="title-row">
+            <div class="main-title"><span class="title-icon"></span> 作業繳交登記</div>
+            <div class="clock-display" id="clock">00:00:00</div>
+          </div>
+        </div>
+
+        <div class="score-board" id="scoreBoard"></div>
+
+        <div class="controls-bar">
+          <div class="controls-left">
+            <span>項目數：</span>
+            <select id="taskCountSelect" class="item-select" onchange="setTaskCount(this.value)">
+              <option value="3">3項</option>
+              <option value="4" selected>4項</option>
+              <option value="5">5項</option>
+              <option value="6">6項</option>
+              <option value="7">7項</option>
+            </select>
+          </div>
+          
+          <div class="controls-right">
+            <input type="file" id="bgFileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+            
+            <button class="action-square-btn upload" onclick="document.getElementById('bgFileInput').click()">
+              <span class="btn-icon">🖼️</span>
+              <span class="btn-text"><span>選擇</span><span>底圖</span></span>
+            </button>
+
+            <button class="action-square-btn clear" id="clearBtn" onclick="handleClearClick()">
+              <span class="btn-icon">🗑️</span>
+              <span class="btn-text" id="clearText"><span>清除</span><span>全部</span></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th rowspan="2" class="th-group">組別</th>
+                <th id="th740" class="th-section-740">7:40 前 (+5)</th>
+                <th class="th-section-815">8:15 (+2)</th>
+              </tr>
+              <tr id="subHeaderRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右半邊 (67%) -->
+    <div class="right-section">
+      <iframe class="doc-iframe" src="https://docs.google.com/document/d/1acYCEdR3oNJnfcBc5fQZwu19pQBxzjHZ54Ot5dGXruI/preview?rm=minimal"></iframe>
+    </div>
+  </div>
+
+  <script>
+    let taskCount = 4;
+    let defaultTitles = ["國習", "數練", "回條", "國重", "社習", "英習", "數單", "聯絡簿"];
+    const groups = ["第一組", "第二組", "第三組", "第四組", "第五組"];
+    let state = Array(5).fill(null).map(() => Array(8).fill(null).map(() => ({ checked: false, time: "" })));
+    let clearConfirmTimer = null;
+    let localImageData = "";
+
+    function saveData() {
+      const dataToSave = {
+        memo: document.getElementById('dailyMemo').innerText,
+        taskCount: taskCount,
+        titles: defaultTitles,
+        state: state,
+        localImageData: localImageData
+      };
+      try {
+        localStorage.setItem('classNoticeBoardData_v2', JSON.stringify(dataToSave));
+      } catch(e) {
+        console.warn("LocalStorage 儲存受限:", e);
+      }
+    }
+
+    function loadData() {
+      try {
+        const savedData = localStorage.getItem('classNoticeBoardData_v2');
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (parsed.memo !== undefined) document.getElementById('dailyMemo').innerText = parsed.memo;
+          if (parsed.taskCount) {
+            taskCount = parseInt(parsed.taskCount);
+            document.getElementById('taskCountSelect').value = taskCount;
+          }
+          if (parsed.titles) defaultTitles = parsed.titles;
+          if (parsed.state) state = parsed.state;
+          if (parsed.localImageData) {
+            localImageData = parsed.localImageData;
+            applyImage(localImageData);
+          }
+        }
+      } catch(e) {
+        console.warn("LocalStorage 讀取受限:", e);
+      }
+    }
+
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          localImageData = e.target.result;
+          applyImage(localImageData);
+          saveData();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function applyImage(dataUrl) {
+      const imgElem = document.getElementById('cornerBgImg');
+      if (dataUrl) {
+        imgElem.src = dataUrl;
+        imgElem.style.display = 'block';
+      } else {
+        imgElem.style.display = 'none';
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hrs = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const secs = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clock').innerText = `${hrs}:${mins}:${secs}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function setTaskCount(count) {
+      taskCount = parseInt(count);
+      document.getElementById('taskCountSelect').value = taskCount;
+      renderHeaders();
+      renderTable();
+      calculateScores();
+      saveData();
+    }
+
+    function handleClearClick() {
+      const btn = document.getElementById('clearBtn');
+      const textSpan = document.getElementById('clearText');
+      if (!btn.classList.contains('confirming')) {
+        btn.classList.add('confirming');
+        textSpan.innerHTML = '<span>確定</span><span>清空？</span>';
+        clearTimeout(clearConfirmTimer);
+        clearConfirmTimer = setTimeout(() => {
+          btn.classList.remove('confirming');
+          textSpan.innerHTML = '<span>清除</span><span>全部</span>';
+        }, 3000);
+      } else {
+        clearTimeout(clearConfirmTimer);
+        btn.classList.remove('confirming');
+        textSpan.innerHTML = '<span>清除</span><span>全部</span>';
+        
+        state = Array(5).fill(null).map(() => Array(8).fill(null).map(() => ({ checked: false, time: "" })));
+        renderTable();
+        calculateScores();
+        saveData();
+      }
+    }
+
+    function renderHeaders() {
+      const th740 = document.getElementById('th740');
+      th740.setAttribute('colspan', taskCount - 1);
+
+      const subRow = document.getElementById('subHeaderRow');
+      subRow.innerHTML = '';
+
+      for (let i = 0; i < taskCount - 1; i++) {
+        const th = document.createElement('th');
+        th.className = 'sub-th';
+        const titleText = defaultTitles[i] || '作業'+(i+1);
+        th.innerHTML = `<span class="editable-title" contenteditable="true" spellcheck="false" onkeyup="updateTitle(${i}, this.innerText)">${titleText}</span>`;
+        subRow.appendChild(th);
+      }
+
+      const thContact = document.createElement('th');
+      thContact.className = 'sub-th';
+      const contactTitle = defaultTitles[7] || '聯絡簿';
+      thContact.innerHTML = `<span class="editable-title" contenteditable="true" spellcheck="false" onkeyup="updateTitle(7, this.innerText)">${contactTitle}</span>`;
+      subRow.appendChild(thContact);
+    }
+
+    function updateTitle(index, text) {
+      defaultTitles[index] = text;
+      saveData();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      groups.forEach((gName, gIdx) => {
+        const tr = document.createElement('tr');
+        tr.className = `g-row-${gIdx}`;
+
+        const tdGroup = document.createElement('td');
+        tdGroup.className = 'group-label';
+        tdGroup.innerText = gName;
+        tr.appendChild(tdGroup);
+
+        for (let tIdx = 0; tIdx < taskCount - 1; tIdx++) {
+          const td = createCheckCell(gIdx, tIdx);
+          tr.appendChild(td);
+        }
+
+        const tdContact = createCheckCell(gIdx, 7);
+        tr.appendChild(tdContact);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function createCheckCell(gIdx, tIdx) {
+      const td = document.createElement('td');
+      td.className = 'check-cell';
+      const cellData = state[gIdx][tIdx];
+      if (cellData && cellData.checked) td.classList.add('checked');
+
+      td.innerHTML = `
+        <span class="check-box"></span><span class="cell-text">全交</span>
+        <span class="cell-time">${cellData ? cellData.time : ''}</span>
+      `;
+
+      td.onclick = () => {
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        state[gIdx][tIdx].checked = !state[gIdx][tIdx].checked;
+        state[gIdx][tIdx].time = state[gIdx][tIdx].checked ? timeStr : '';
+
+        renderTable();
+        calculateScores();
+        saveData();
+      };
+
+      return td;
+    }
+
+    function calculateScores() {
+      const board = document.getElementById('scoreBoard');
+      board.innerHTML = '';
+
+      groups.forEach((gName, gIdx) => {
+        let totalScore = 0;
+        let p740Score = 0;
+        let p815Score = 0;
+
+        let all740Checked = true;
+        let max740Time = "00:00";
+
+        for (let tIdx = 0; tIdx < taskCount - 1; tIdx++) {
+          const item = state[gIdx][tIdx];
+          if (!item || !item.checked) {
+            all740Checked = false;
+            break;
+          }
+          if (item.time > max740Time) max740Time = item.time;
+        }
+
+        if (all740Checked) {
+          if (max740Time <= "07:40") {
+            p740Score = 5;
+          } else if (max740Time <= "08:15") {
+            p740Score = 2;
+          }
+        }
+
+        const contactItem = state[gIdx][7];
+        if (contactItem && contactItem.checked && contactItem.time <= "08:15") {
+          p815Score = 2;
+        }
+
+        totalScore = p740Score + p815Score;
+
+        const card = document.createElement('div');
+        card.className = 'score-card';
+        card.innerHTML = `
+          <div class="g-name">${gName}</div>
+          <div class="g-pts">+${totalScore}</div>
+          <div class="g-details">
+            <span class="detail-tag ${p740Score > 0 ? 'tag-pass' : 'tag-fail'}">7:40 ${p740Score > 0 ? '✓+'+p740Score : '✕'}</span>
+            <span class="detail-tag ${p815Score > 0 ? 'tag-pass' : 'tag-fail'}">8:15 ${p815Score > 0 ? '✓+'+p815Score : '✕'}</span>
+          </div>
+        `;
+        board.appendChild(card);
+      });
+    }
+
+    loadData();
+    renderHeaders();
+    renderTable();
+    calculateScores();
+  </script>
+</body>
+</html>
